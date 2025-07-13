@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class VisionPage extends StatefulWidget {
   const VisionPage({super.key});
@@ -17,11 +18,31 @@ class _VisionPageState extends State<VisionPage> {
   };
 
   @override
+  void initState() {
+    super.initState();
+    _loadVisions();
+  }
+
+  @override
   void dispose() {
     for (var c in _controllers.values) {
       c.dispose();
     }
     super.dispose();
+  }
+
+  Future<void> _loadVisions() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      for (var category in _controllers.keys) {
+        _controllers[category]?.text = prefs.getString('vision_$category') ?? '';
+      }
+    });
+  }
+
+  Future<void> _saveVision(String category) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('vision_$category', _controllers[category]!.text);
   }
 
   @override
@@ -52,8 +73,8 @@ class _VisionPageState extends State<VisionPage> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     suffixIcon: IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () => setState(() => entry.value.clear()),
+                      icon: const Icon(Icons.save),
+                      onPressed: () => _saveVision(entry.key),
                     ),
                   ),
                 ),
