@@ -4,7 +4,6 @@ import '../models/key_result.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
-
 class ObjectivesPage extends StatefulWidget {
   const ObjectivesPage({super.key});
 
@@ -43,6 +42,12 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
             obj.periodIndex == _selectedPeriodIndex &&
             obj.category == _selectedCategory;
       }).toList();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadObjectivesFromPrefs();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,7 +103,8 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
                     icon: const Icon(Icons.arrow_back),
                     onPressed: () {
                       setState(() {
-                        _selectedYear = (_selectedYear - 1).clamp(_yearRange.first, _yearRange.last);
+                        _selectedYear =
+                            (_selectedYear - 1).clamp(_yearRange.first, _yearRange.last);
                       });
                     },
                   ),
@@ -107,7 +113,8 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
                     icon: const Icon(Icons.arrow_forward),
                     onPressed: () {
                       setState(() {
-                        _selectedYear = (_selectedYear + 1).clamp(_yearRange.first, _yearRange.last);
+                        _selectedYear =
+                            (_selectedYear + 1).clamp(_yearRange.first, _yearRange.last);
                       });
                     },
                   ),
@@ -223,6 +230,7 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
                     ),
                   );
                 });
+                _saveObjectivesToPrefs();
                 Navigator.pop(context);
               },
               child: const Text('Add'),
@@ -269,6 +277,7 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
                 setState(() {
                   obj.keyResults.add(KeyResult(title: controller.text, status: krStatus, tasks: []));
                 });
+                _saveObjectivesToPrefs();
                 Navigator.pop(context);
               },
               child: const Text('Add'),
@@ -295,6 +304,7 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
           ElevatedButton(
             onPressed: () {
               setState(() => obj.keyResults[krIndex].tasks.add(controller.text));
+              _saveObjectivesToPrefs();
               Navigator.pop(context);
             },
             child: const Text('Add'),
@@ -302,6 +312,51 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _saveObjectivesToPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = _objectives.map((o) => json.encode({
+          'title': o.title,
+          'status': o.status.name,
+          'category': o.category,
+          'year': o.year,
+          'periodIndex': o.periodIndex,
+          'keyResults': o.keyResults.map((kr) => {
+                'title': kr.title,
+                'status': kr.status.name,
+                'tasks': kr.tasks,
+              }).toList(),
+        })).toList();
+    await prefs.setStringList('objectives', jsonList);
+  }
+
+  Future<void> _loadObjectivesFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = prefs.getStringList('objectives') ?? [];
+
+    setState(() {
+      _objectives.clear();
+      for (final jsonStr in jsonList) {
+        final obj = json.decode(jsonStr);
+        _objectives.add(
+          Objective(
+            title: obj['title'],
+            status: Status.values.firstWhere((s) => s.name == obj['status']),
+            category: obj['category'],
+            year: obj['year'],
+            periodIndex: obj['periodIndex'],
+            keyResults: (obj['keyResults'] as List).map((kr) {
+              return KeyResult(
+                title: kr['title'],
+                status: Status.values.firstWhere((s) => s.name == kr['status']),
+                tasks: List<String>.from(kr['tasks']),
+              );
+            }).toList(),
+          ),
+        );
+      }
+    });
   }
 
   Widget _statusTag(Status status) {
