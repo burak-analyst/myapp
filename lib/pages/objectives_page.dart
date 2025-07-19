@@ -17,67 +17,143 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
   final List<Objective> _objectives = [];
 
   final List<String> _categories = [
-    'health',
-    'finance',
-    'business',
-    'romance',
-    'lifestyle',
+    'Health',
+    'Finance',
+    'Business',
+    'Romance',
+    'Lifestyle',
   ];
 
   final List<String> _periods = [
-    'jan-feb',
-    'mar-apr',
-    'may-jun',
-    'jul-aug',
-    'sep-oct',
-    'nov-dec',
+    'Jan-Feb',
+    'Mar-Apr',
+    'May-Jun',
+    'Jul-Aug',
+    'Sep-Oct',
+    'Nov-Dec',
   ];
 
   int _selectedYear = DateTime.now().year;
   int _selectedPeriodIndex = 3;
-  String _selectedCategory = 'health';
+  String _selectedCategory = 'Health';
 
   List<int> get _yearRange => List.generate(4, (i) => DateTime.now().year + i);
 
   List<Objective> get _filteredObjectives => _objectives.where((obj) {
-        return obj.year == _selectedYear &&
-            obj.periodIndex == _selectedPeriodIndex &&
-            obj.category == _selectedCategory;
-      }).toList();
+    return obj.year == _selectedYear &&
+        obj.periodIndex == _selectedPeriodIndex &&
+        obj.category == _selectedCategory;
+  }).toList();
 
   @override
   void initState() {
     super.initState();
-    _loadObjectivesFromPrefs();
+    _initLoad();
+  }
+
+  void _initLoad() async {
+    await _loadObjectivesFromPrefs();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FB),
       appBar: AppBar(
+        elevation: 6,
         title: const Text(
           'Objectives',
           style: TextStyle(
-            fontFamily: 'Roboto',
-            fontSize: 24,
+            fontFamily: 'Montserrat',
+            fontSize: 26,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            letterSpacing: 1.3,
+          ),
+        ),
+        backgroundColor: Colors.blueGrey[900],
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+            tooltip: 'Reload',
+            onPressed: () => _initLoad(),
+          ),
+        ],
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.blueGrey.shade50,
+              Colors.white,
+            ],
+          ),
+        ),
+        child: Column(
+          children: [
+            _buildFilters(),
+            Expanded(
+              child: _filteredObjectives.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.flag_outlined, size: 56, color: Colors.blueGrey[200]),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No objectives yet.\nTap "+" to add one.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: 'Montserrat',
+                              fontSize: 18,
+                              color: Colors.blueGrey[300],
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      itemCount: _filteredObjectives.length,
+                      itemBuilder: (context, index) {
+                        final obj = _filteredObjectives[index];
+                        return buildObjectiveCardWidget(
+                          context: context,
+                          obj: obj,
+                          objIndex: _objectives.indexOf(obj),
+                          onEditObjective: _showEditObjectiveDialog,
+                          onDeleteObjective: _deleteObjective,
+                          onEditKeyResult: _showEditKeyResultDialog,
+                          onDeleteKeyResult: _deleteKeyResult,
+                          onAddKeyResult: _addKeyResult,
+                          onEditTask: _showEditTaskDialog,
+                          onDeleteTask: _deleteTask,
+                          onAddTask: _addTask,
+                          onStatusChange: _onStatusChange,
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showAddObjectiveDialog,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text(
+          'New Objective',
+          style: TextStyle(
+            fontFamily: 'Montserrat',
             fontWeight: FontWeight.bold,
             color: Colors.white,
             letterSpacing: 1.2,
           ),
         ),
-        backgroundColor: Colors.blueGrey[700],
-      ),
-      body: buildObjectivesBody(
-        context: context,
-        buildFilters: _buildFilters,
-        filteredObjectives: _filteredObjectives,
-        buildObjectiveCard: _buildObjectiveCard,
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddObjectiveDialog,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('New Objective', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.blueGrey[700],
+        backgroundColor: Colors.blueGrey[800],
+        elevation: 6,
       ),
     );
   }
@@ -91,21 +167,9 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
       periods: _periods,
       selectedPeriodIndex: _selectedPeriodIndex,
       onPeriodChanged: (index) => setState(() => _selectedPeriodIndex = index),
-    );
-  }
-
-  Widget _buildObjectiveCard(Objective obj, int objIndex) {
-    return buildObjectiveCardWidget(
-      context: context,
-      obj: obj,
-      objIndex: objIndex,
-      onEditObjective: _showEditObjectiveDialog,
-      onEditKeyResult: _showEditKeyResultDialog,
-      onAddKeyResult: _addKeyResult,
-      onEditTask: _showEditTaskDialog,
-      onAddTask: _addTask,
-      statusTag: _statusTag,
-      statusColor: _statusColor,
+      categories: _categories,
+      selectedCategory: _selectedCategory,
+      onCategoryChanged: (cat) => setState(() => _selectedCategory = cat),
     );
   }
 
@@ -129,14 +193,23 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
     showEditObjectiveDialog(
       context: context,
       obj: obj,
-      onSave: (String title, Status status) {
+      categories: _categories,
+      onSave: (String title, Status status, String category) {
         setState(() {
           _objectives[objIndex].title = title;
           _objectives[objIndex].status = status;
+          _objectives[objIndex].category = category;
         });
         _saveObjectivesToPrefs();
       },
     );
+  }
+
+  void _deleteObjective(int objIndex) {
+    setState(() {
+      _objectives.removeAt(objIndex);
+    });
+    _saveObjectivesToPrefs();
   }
 
   void _addKeyResult(Objective obj, int objIndex) {
@@ -163,6 +236,13 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
         _saveObjectivesToPrefs();
       },
     );
+  }
+
+  void _deleteKeyResult(Objective obj, int krIndex, int objIndex) {
+    setState(() {
+      obj.keyResults.removeAt(krIndex);
+    });
+    _saveObjectivesToPrefs();
   }
 
   void _addTask(Objective obj, int krIndex, int objIndex) {
@@ -193,20 +273,37 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
     );
   }
 
+  void _deleteTask(Objective obj, int krIndex, String task, int objIndex) {
+    setState(() {
+      obj.keyResults[krIndex].tasks.remove(task);
+    });
+    _saveObjectivesToPrefs();
+  }
+
+  void _onStatusChange({
+    required Status newStatus,
+    required void Function() onSetStatus,
+  }) {
+    setState(() {
+      onSetStatus();
+    });
+    _saveObjectivesToPrefs();
+  }
+
   Future<void> _saveObjectivesToPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     final jsonList = _objectives.map((o) => json.encode({
-          'title': o.title,
-          'status': o.status.name,
-          'category': o.category,
-          'year': o.year,
-          'periodIndex': o.periodIndex,
-          'keyResults': o.keyResults.map((kr) => {
-                'title': kr.title,
-                'status': kr.status.name,
-                'tasks': kr.tasks,
-              }).toList(),
-        })).toList();
+      'title': o.title,
+      'status': o.status.name,
+      'category': o.category,
+      'year': o.year,
+      'periodIndex': o.periodIndex,
+      'keyResults': o.keyResults.map((kr) => {
+        'title': kr.title,
+        'status': kr.status.name,
+        'tasks': kr.tasks,
+      }).toList(),
+    })).toList();
     await prefs.setStringList('objectives', jsonList);
   }
 
@@ -214,35 +311,31 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
     final prefs = await SharedPreferences.getInstance();
     final jsonList = prefs.getStringList('objectives') ?? [];
 
+    List<Objective> loadedObjectives = [];
+    for (final jsonStr in jsonList) {
+      final obj = json.decode(jsonStr);
+      loadedObjectives.add(
+        Objective(
+          title: obj['title'],
+          status: Status.values.firstWhere((s) => s.name == obj['status']),
+          category: obj['category'],
+          year: obj['year'],
+          periodIndex: obj['periodIndex'],
+          keyResults: (obj['keyResults'] as List).map((kr) {
+            return KeyResult(
+              title: kr['title'],
+              status: Status.values.firstWhere((s) => s.name == kr['status']),
+              tasks: List<String>.from(kr['tasks']),
+            );
+          }).toList(),
+        ),
+      );
+    }
+
     setState(() {
-      _objectives.clear();
-      for (final jsonStr in jsonList) {
-        final obj = json.decode(jsonStr);
-        _objectives.add(
-          Objective(
-            title: obj['title'],
-            status: Status.values.firstWhere((s) => s.name == obj['status']),
-            category: obj['category'],
-            year: obj['year'],
-            periodIndex: obj['periodIndex'],
-            keyResults: (obj['keyResults'] as List).map((kr) {
-              return KeyResult(
-                title: kr['title'],
-                status: Status.values.firstWhere((s) => s.name == kr['status']),
-                tasks: List<String>.from(kr['tasks']),
-              );
-            }).toList(),
-          ),
-        );
-      }
+      _objectives
+        ..clear()
+        ..addAll(loadedObjectives);
     });
-  }
-
-  Widget _statusTag(Status status) {
-    return statusTagWidget(status);
-  }
-
-  Color _statusColor(Status status) {
-    return statusColorHelper(status);
   }
 }
