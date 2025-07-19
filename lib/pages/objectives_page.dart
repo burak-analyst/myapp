@@ -52,26 +52,48 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('objectives')),
-      body: Column(
-        children: [
-          _buildFilters(),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _filteredObjectives.length,
-              itemBuilder: (context, index) {
-                final obj = _filteredObjectives[index];
-                return _buildObjectiveCard(obj, index);
-              },
-            ),
+      appBar: AppBar(
+        title: const Text(
+          'Objectives',
+          style: TextStyle(
+            fontFamily: 'Roboto',
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            letterSpacing: 1.2,
           ),
-        ],
+        ),
+        backgroundColor: Colors.blueGrey[700],
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.blueGrey[100]!, Colors.white],
+          ),
+        ),
+        child: Column(
+          children: [
+            _buildFilters(),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _filteredObjectives.length,
+                itemBuilder: (context, index) {
+                  final obj = _filteredObjectives[index];
+                  return _buildObjectiveCard(obj, index);
+                },
+              ),
+            ),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddObjectiveDialog,
-        icon: const Icon(Icons.add),
-        label: const Text('new objective'),
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text('New Objective', style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.blueGrey[700],
       ),
     );
   }
@@ -88,7 +110,7 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back),
+                    icon: const Icon(Icons.arrow_back, color: Colors.blueGrey),
                     onPressed: () {
                       setState(() {
                         _selectedYear =
@@ -96,9 +118,12 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
                       });
                     },
                   ),
-                  Text('$_selectedYear'),
+                  Text(
+                    '$_selectedYear',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                   IconButton(
-                    icon: const Icon(Icons.arrow_forward),
+                    icon: const Icon(Icons.arrow_forward, color: Colors.blueGrey),
                     onPressed: () {
                       setState(() {
                         _selectedYear =
@@ -113,7 +138,7 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
                 items: List.generate(_periods.length, (i) {
                   return DropdownMenuItem(
                     value: _periods[i],
-                    child: Text(_periods[i]),
+                    child: Text(_periods[i], style: const TextStyle(fontSize: 16)),
                   );
                 }),
                 onChanged: (value) {
@@ -123,6 +148,8 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
                     });
                   }
                 },
+                dropdownColor: Colors.white,
+                style: const TextStyle(color: Colors.black87),
               ),
             ],
           ),
@@ -132,62 +159,82 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
   }
 
   Widget _buildObjectiveCard(Objective obj, int objIndex) {
-    return ExpansionTile(
-      title: Row(
+    return Card(
+      elevation: 4,
+      margin: const EdgeInsets.only(bottom: 16),
+      color: _statusColor(obj.status).withOpacity(0.2),
+      child: ExpansionTile(
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                obj.title,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+              ),
+            ),
+            _statusTag(obj.status),
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.blueGrey),
+              onPressed: () => _showEditObjectiveDialog(obj, objIndex),
+            ),
+          ],
+        ),
         children: [
-          Expanded(child: Text(obj.title)),
-          _statusTag(obj.status),
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () => _showEditObjectiveDialog(obj, objIndex),
+          for (int i = 0; i < obj.keyResults.length; i++)
+            Card(
+              elevation: 2,
+              margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+              child: ListTile(
+                title: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        obj.keyResults[i].title,
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
+                    _statusTag(obj.keyResults[i].status),
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.blueGrey),
+                      onPressed: () => _showEditKeyResultDialog(obj, i, objIndex),
+                    ),
+                  ],
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (var task in obj.keyResults[i].tasks)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text('  - $task', style: const TextStyle(fontSize: 14)),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.edit, color: Colors.blueGrey),
+                            onPressed: () => _showEditTaskDialog(obj, i, task, objIndex),
+                          ),
+                        ],
+                      ),
+                    TextButton.icon(
+                      onPressed: () => _addTask(obj, i, objIndex),
+                      icon: const Icon(Icons.add, color: Colors.blueGrey),
+                      label: const Text('add task', style: TextStyle(color: Colors.blueGrey)),
+                    ),
+                  ],
+                ),
+                trailing: _statusTag(obj.keyResults[i].status),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: TextButton.icon(
+              onPressed: () => _addKeyResult(obj, objIndex),
+              icon: const Icon(Icons.add, color: Colors.blueGrey),
+              label: const Text('add key result', style: TextStyle(color: Colors.blueGrey)),
+            ),
           ),
         ],
       ),
-      backgroundColor: _statusColor(obj.status),
-      collapsedBackgroundColor: _statusColor(obj.status),
-      collapsedTextColor: _statusTextColor(obj.status),
-      textColor: _statusTextColor(obj.status),
-      children: [
-        for (int i = 0; i < obj.keyResults.length; i++)
-          ListTile(
-            title: Row(
-              children: [
-                Expanded(child: Text(obj.keyResults[i].title)),
-                _statusTag(obj.keyResults[i].status),
-                IconButton(
-                  icon: const Icon(Icons.edit),
-                  onPressed: () => _showEditKeyResultDialog(obj, i, objIndex),
-                ),
-              ],
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (var task in obj.keyResults[i].tasks)
-                  Row(
-                    children: [
-                      Expanded(child: Text('  - $task')),
-                      IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () => _showEditTaskDialog(obj, i, task, objIndex),
-                      ),
-                    ],
-                  ),
-                TextButton.icon(
-                  onPressed: () => _addTask(obj, i, objIndex),
-                  icon: const Icon(Icons.add),
-                  label: const Text('add task'),
-                ),
-              ],
-            ),
-            trailing: _statusTag(obj.keyResults[i].status),
-          ),
-        TextButton.icon(
-          onPressed: () => _addKeyResult(obj, objIndex),
-          icon: const Icon(Icons.add),
-          label: const Text('add key result'),
-        ),
-      ],
     );
   }
 
@@ -200,44 +247,54 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('new objective'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: controller,
-                decoration: const InputDecoration(labelText: 'objective title'),
-              ),
-              const SizedBox(height: 16),
-              DropdownButton<Status>(
-                value: selectedStatus,
-                isExpanded: true,
-                items: Status.values.map((s) {
-                  return DropdownMenuItem(value: s, child: Text(s.name));
-                }).toList(),
-                onChanged: (val) {
-                  if (val != null) setState(() => selectedStatus = val);
-                },
-              ),
-              const SizedBox(height: 16),
-              DropdownButton<String>(
-                value: selectedCategory,
-                isExpanded: true,
-                items: _categories.map((cat) {
-                  return DropdownMenuItem(value: cat, child: Text(cat));
-                }).toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() => selectedCategory = value);
-                  }
-                },
-              ),
-            ],
+          title: const Text('new objective', style: TextStyle(fontSize: 20)),
+          content: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: controller,
+                  decoration: const InputDecoration(labelText: 'objective title'),
+                ),
+                const SizedBox(height: 16),
+                DropdownButton<Status>(
+                  value: selectedStatus,
+                  isExpanded: true,
+                  items: Status.values.map((s) {
+                    return DropdownMenuItem(
+                      value: s,
+                      child: Text(s.name.replaceAll('_', ' ').toLowerCase().split(' ').map((word) => word[0].toUpperCase() + word.substring(1)).join(' ')),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) setState(() => selectedStatus = val);
+                  },
+                ),
+                const SizedBox(height: 16),
+                DropdownButton<String>(
+                  value: selectedCategory,
+                  isExpanded: true,
+                  items: _categories.map((cat) {
+                    return DropdownMenuItem(value: cat, child: Text(cat));
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => selectedCategory = value);
+                    }
+                  },
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('cancel'),
+              child: const Text('cancel', style: TextStyle(color: Colors.blueGrey)),
             ),
             ElevatedButton(
               onPressed: () {
@@ -256,7 +313,8 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
                 _saveObjectivesToPrefs();
                 Navigator.pop(context);
               },
-              child: const Text('add'),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey[700]),
+              child: const Text('add', style: TextStyle(color: Colors.white)),
             ),
           ],
         );
@@ -272,31 +330,41 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('edit objective'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: controller,
-                decoration: const InputDecoration(labelText: 'objective title'),
-              ),
-              const SizedBox(height: 16),
-              DropdownButton<Status>(
-                value: selectedStatus,
-                isExpanded: true,
-                items: Status.values.map((s) {
-                  return DropdownMenuItem(value: s, child: Text(s.name));
-                }).toList(),
-                onChanged: (val) {
-                  if (val != null) setState(() => selectedStatus = val);
-                },
-              ),
-            ],
+          title: const Text('edit objective', style: TextStyle(fontSize: 20)),
+          content: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: controller,
+                  decoration: const InputDecoration(labelText: 'objective title'),
+                ),
+                const SizedBox(height: 16),
+                DropdownButton<Status>(
+                  value: selectedStatus,
+                  isExpanded: true,
+                  items: Status.values.map((s) {
+                    return DropdownMenuItem(
+                      value: s,
+                      child: Text(s.name.replaceAll('_', ' ').toLowerCase().split(' ').map((word) => word[0].toUpperCase() + word.substring(1)).join(' ')),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) setState(() => selectedStatus = val);
+                  },
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('cancel'),
+              child: const Text('cancel', style: TextStyle(color: Colors.blueGrey)),
             ),
             ElevatedButton(
               onPressed: () {
@@ -307,7 +375,8 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
                 _saveObjectivesToPrefs();
                 Navigator.pop(context);
               },
-              child: const Text('save'),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey[700]),
+              child: const Text('save', style: TextStyle(color: Colors.white)),
             ),
           ],
         );
@@ -323,29 +392,39 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('add key result'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: controller,
-                decoration: const InputDecoration(labelText: 'key result title'),
-              ),
-              const SizedBox(height: 16),
-              DropdownButton<Status>(
-                value: krStatus,
-                isExpanded: true,
-                items: Status.values.map((s) {
-                  return DropdownMenuItem(value: s, child: Text(s.name));
-                }).toList(),
-                onChanged: (val) {
-                  if (val != null) setState(() => krStatus = val);
-                },
-              ),
-            ],
+          title: const Text('add key result', style: TextStyle(fontSize: 20)),
+          content: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: controller,
+                  decoration: const InputDecoration(labelText: 'key result title'),
+                ),
+                const SizedBox(height: 16),
+                DropdownButton<Status>(
+                  value: krStatus,
+                  isExpanded: true,
+                  items: Status.values.map((s) {
+                    return DropdownMenuItem(
+                      value: s,
+                      child: Text(s.name.replaceAll('_', ' ').toLowerCase().split(' ').map((word) => word[0].toUpperCase() + word.substring(1)).join(' ')),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) setState(() => krStatus = val);
+                  },
+                ),
+              ],
+            ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('cancel')),
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('cancel', style: TextStyle(color: Colors.blueGrey))),
             ElevatedButton(
               onPressed: () {
                 setState(() {
@@ -354,7 +433,8 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
                 _saveObjectivesToPrefs();
                 Navigator.pop(context);
               },
-              child: const Text('add'),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey[700]),
+              child: const Text('add', style: TextStyle(color: Colors.white)),
             ),
           ],
         );
@@ -370,29 +450,39 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('edit key result'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: controller,
-                decoration: const InputDecoration(labelText: 'key result title'),
-              ),
-              const SizedBox(height: 16),
-              DropdownButton<Status>(
-                value: selectedStatus,
-                isExpanded: true,
-                items: Status.values.map((s) {
-                  return DropdownMenuItem(value: s, child: Text(s.name));
-                }).toList(),
-                onChanged: (val) {
-                  if (val != null) setState(() => selectedStatus = val);
-                },
-              ),
-            ],
+          title: const Text('edit key result', style: TextStyle(fontSize: 20)),
+          content: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: controller,
+                  decoration: const InputDecoration(labelText: 'key result title'),
+                ),
+                const SizedBox(height: 16),
+                DropdownButton<Status>(
+                  value: selectedStatus,
+                  isExpanded: true,
+                  items: Status.values.map((s) {
+                    return DropdownMenuItem(
+                      value: s,
+                      child: Text(s.name.replaceAll('_', ' ').toLowerCase().split(' ').map((word) => word[0].toUpperCase() + word.substring(1)).join(' ')),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) setState(() => selectedStatus = val);
+                  },
+                ),
+              ],
+            ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('cancel')),
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('cancel', style: TextStyle(color: Colors.blueGrey))),
             ElevatedButton(
               onPressed: () {
                 setState(() {
@@ -402,7 +492,8 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
                 _saveObjectivesToPrefs();
                 Navigator.pop(context);
               },
-              child: const Text('save'),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey[700]),
+              child: const Text('save', style: TextStyle(color: Colors.white)),
             ),
           ],
         );
@@ -416,20 +507,28 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('add task'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(labelText: 'task'),
+        title: const Text('add task', style: TextStyle(fontSize: 20)),
+        content: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: Colors.white,
+          ),
+          child: TextField(
+            controller: controller,
+            decoration: const InputDecoration(labelText: 'task'),
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('cancel')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('cancel', style: TextStyle(color: Colors.blueGrey))),
           ElevatedButton(
             onPressed: () {
               setState(() => obj.keyResults[krIndex].tasks.add(controller.text));
               _saveObjectivesToPrefs();
               Navigator.pop(context);
             },
-            child: const Text('add'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey[700]),
+            child: const Text('add', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -442,13 +541,20 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('edit task'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(labelText: 'task'),
+        title: const Text('edit task', style: TextStyle(fontSize: 20)),
+        content: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: Colors.white,
+          ),
+          child: TextField(
+            controller: controller,
+            decoration: const InputDecoration(labelText: 'task'),
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('cancel')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('cancel', style: TextStyle(color: Colors.blueGrey))),
           ElevatedButton(
             onPressed: () {
               setState(() {
@@ -460,7 +566,8 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
               _saveObjectivesToPrefs();
               Navigator.pop(context);
             },
-            child: const Text('save'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey[700]),
+            child: const Text('save', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -517,11 +624,11 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: _statusTextColor(status),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        status.name,
-        style: const TextStyle(color: Colors.white),
+        status.name.replaceAll('_', ' ').toLowerCase().split(' ').map((word) => word[0].toUpperCase() + word.substring(1)).join(' '),
+        style: const TextStyle(color: Colors.white, fontSize: 12),
       ),
     );
   }
