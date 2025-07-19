@@ -15,25 +15,25 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
   final List<Objective> _objectives = [];
 
   final List<String> _categories = [
-    'Health',
-    'Finance',
-    'Business',
-    'Romance',
-    'Lifestyle',
+    'health',
+    'finance',
+    'business',
+    'romance',
+    'lifestyle',
   ];
 
   final List<String> _periods = [
-    'Jan–Feb',
-    'Mar–Apr',
-    'May–Jun',
-    'Jul–Aug',
-    'Sep–Oct',
-    'Nov–Dec',
+    'jan-feb',
+    'mar-apr',
+    'may-jun',
+    'jul-aug',
+    'sep-oct',
+    'nov-dec',
   ];
 
   int _selectedYear = DateTime.now().year;
-  int _selectedPeriodIndex = 0;
-  String _selectedCategory = 'Health';
+  int _selectedPeriodIndex = 3; // Default to Jul-Aug (July 19, 2025)
+  String _selectedCategory = 'health';
 
   List<int> get _yearRange => List.generate(4, (i) => DateTime.now().year + i);
 
@@ -52,7 +52,7 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Objectives')),
+      appBar: AppBar(title: const Text('objectives')),
       body: Column(
         children: [
           _buildFilters(),
@@ -62,7 +62,7 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
               itemCount: _filteredObjectives.length,
               itemBuilder: (context, index) {
                 final obj = _filteredObjectives[index];
-                return _buildObjectiveCard(obj);
+                return _buildObjectiveCard(obj, index);
               },
             ),
           ),
@@ -71,7 +71,7 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddObjectiveDialog,
         icon: const Icon(Icons.add),
-        label: const Text('New Objective'),
+        label: const Text('new objective'),
       ),
     );
   }
@@ -82,18 +82,6 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          DropdownButton<String>(
-            value: _selectedCategory,
-            isExpanded: true,
-            items: _categories.map((cat) {
-              return DropdownMenuItem(value: cat, child: Text(cat));
-            }).toList(),
-            onChanged: (value) {
-              if (value != null) {
-                setState(() => _selectedCategory = value);
-              }
-            },
-          ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -143,12 +131,16 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
     );
   }
 
-  Widget _buildObjectiveCard(Objective obj) {
+  Widget _buildObjectiveCard(Objective obj, int objIndex) {
     return ExpansionTile(
       title: Row(
         children: [
           Expanded(child: Text(obj.title)),
           _statusTag(obj.status),
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () => _showEditObjectiveDialog(obj, objIndex),
+          ),
         ],
       ),
       backgroundColor: _statusColor(obj.status),
@@ -158,24 +150,42 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
       children: [
         for (int i = 0; i < obj.keyResults.length; i++)
           ListTile(
-            title: Text('• ${obj.keyResults[i].title}'),
+            title: Row(
+              children: [
+                Expanded(child: Text(obj.keyResults[i].title)),
+                _statusTag(obj.keyResults[i].status),
+                IconButton(
+                  icon: const Icon(Icons.edit),
+                  onPressed: () => _showEditKeyResultDialog(obj, i, objIndex),
+                ),
+              ],
+            ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (var task in obj.keyResults[i].tasks) Text('    - $task'),
+                for (var task in obj.keyResults[i].tasks)
+                  Row(
+                    children: [
+                      Expanded(child: Text('  - $task')),
+                      IconButton(
+                        icon: const Icon(Icons.edit),
+                        onPressed: () => _showEditTaskDialog(obj, i, task, objIndex),
+                      ),
+                    ],
+                  ),
                 TextButton.icon(
-                  onPressed: () => _addTask(obj, i),
+                  onPressed: () => _addTask(obj, i, objIndex),
                   icon: const Icon(Icons.add),
-                  label: const Text('Add Task'),
+                  label: const Text('add task'),
                 ),
               ],
             ),
             trailing: _statusTag(obj.keyResults[i].status),
           ),
         TextButton.icon(
-          onPressed: () => _addKeyResult(obj),
+          onPressed: () => _addKeyResult(obj, objIndex),
           icon: const Icon(Icons.add),
-          label: const Text('Add Key Result'),
+          label: const Text('add key result'),
         ),
       ],
     );
@@ -190,13 +200,13 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('New Objective'),
+          title: const Text('new objective'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: controller,
-                decoration: const InputDecoration(labelText: 'Objective Title'),
+                decoration: const InputDecoration(labelText: 'objective title'),
               ),
               const SizedBox(height: 16),
               DropdownButton<Status>(
@@ -209,12 +219,25 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
                   if (val != null) setState(() => selectedStatus = val);
                 },
               ),
+              const SizedBox(height: 16),
+              DropdownButton<String>(
+                value: selectedCategory,
+                isExpanded: true,
+                items: _categories.map((cat) {
+                  return DropdownMenuItem(value: cat, child: Text(cat));
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => selectedCategory = value);
+                  }
+                },
+              ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: const Text('cancel'),
             ),
             ElevatedButton(
               onPressed: () {
@@ -233,7 +256,7 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
                 _saveObjectivesToPrefs();
                 Navigator.pop(context);
               },
-              child: const Text('Add'),
+              child: const Text('add'),
             ),
           ],
         );
@@ -241,7 +264,58 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
     );
   }
 
-  void _addKeyResult(Objective obj) {
+  void _showEditObjectiveDialog(Objective obj, int objIndex) {
+    final controller = TextEditingController(text: obj.title);
+    Status selectedStatus = obj.status;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('edit objective'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                decoration: const InputDecoration(labelText: 'objective title'),
+              ),
+              const SizedBox(height: 16),
+              DropdownButton<Status>(
+                value: selectedStatus,
+                isExpanded: true,
+                items: Status.values.map((s) {
+                  return DropdownMenuItem(value: s, child: Text(s.name));
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => selectedStatus = val);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _objectives[objIndex].title = controller.text;
+                  _objectives[objIndex].status = selectedStatus;
+                });
+                _saveObjectivesToPrefs();
+                Navigator.pop(context);
+              },
+              child: const Text('save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _addKeyResult(Objective obj, int objIndex) {
     final controller = TextEditingController();
     Status krStatus = Status.notStarted;
 
@@ -249,13 +323,13 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Add Key Result'),
+          title: const Text('add key result'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: controller,
-                decoration: const InputDecoration(labelText: 'Key Result Title'),
+                decoration: const InputDecoration(labelText: 'key result title'),
               ),
               const SizedBox(height: 16),
               DropdownButton<Status>(
@@ -271,7 +345,7 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('cancel')),
             ElevatedButton(
               onPressed: () {
                 setState(() {
@@ -280,7 +354,7 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
                 _saveObjectivesToPrefs();
                 Navigator.pop(context);
               },
-              child: const Text('Add'),
+              child: const Text('add'),
             ),
           ],
         );
@@ -288,26 +362,105 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
     );
   }
 
-  void _addTask(Objective obj, int krIndex) {
+  void _showEditKeyResultDialog(Objective obj, int krIndex, int objIndex) {
+    final controller = TextEditingController(text: obj.keyResults[krIndex].title);
+    Status selectedStatus = obj.keyResults[krIndex].status;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('edit key result'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                decoration: const InputDecoration(labelText: 'key result title'),
+              ),
+              const SizedBox(height: 16),
+              DropdownButton<Status>(
+                value: selectedStatus,
+                isExpanded: true,
+                items: Status.values.map((s) {
+                  return DropdownMenuItem(value: s, child: Text(s.name));
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => selectedStatus = val);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('cancel')),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  obj.keyResults[krIndex].title = controller.text;
+                  obj.keyResults[krIndex].status = selectedStatus;
+                });
+                _saveObjectivesToPrefs();
+                Navigator.pop(context);
+              },
+              child: const Text('save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _addTask(Objective obj, int krIndex, int objIndex) {
     final controller = TextEditingController();
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Add Task'),
+        title: const Text('add task'),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(labelText: 'Task'),
+          decoration: const InputDecoration(labelText: 'task'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('cancel')),
           ElevatedButton(
             onPressed: () {
               setState(() => obj.keyResults[krIndex].tasks.add(controller.text));
               _saveObjectivesToPrefs();
               Navigator.pop(context);
             },
-            child: const Text('Add'),
+            child: const Text('add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditTaskDialog(Objective obj, int krIndex, String task, int objIndex) {
+    final controller = TextEditingController(text: task);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('edit task'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(labelText: 'task'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('cancel')),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                final taskIndex = obj.keyResults[krIndex].tasks.indexOf(task);
+                if (taskIndex != -1) {
+                  obj.keyResults[krIndex].tasks[taskIndex] = controller.text;
+                }
+              });
+              _saveObjectivesToPrefs();
+              Navigator.pop(context);
+            },
+            child: const Text('save'),
           ),
         ],
       ),
