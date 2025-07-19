@@ -53,7 +53,14 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
+  assets:
+    - assets/icon.png
+dev_dependencies:
+  flutter_launcher_icons: "^0.13.1"
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon.png"
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
