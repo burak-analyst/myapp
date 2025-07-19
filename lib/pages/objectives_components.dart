@@ -12,9 +12,6 @@ Widget buildFiltersWidget({
   required List<String> periods,
   required int selectedPeriodIndex,
   required void Function(int index) onPeriodChanged,
-  required List<String> categories,
-  required String selectedCategory,
-  required void Function(String cat) onCategoryChanged,
 }) {
   return Container(
     width: double.infinity,
@@ -74,25 +71,6 @@ Widget buildFiltersWidget({
           onChanged: (value) {
             if (value != null) {
               onPeriodChanged(periods.indexOf(value));
-            }
-          },
-          dropdownColor: Colors.white,
-          style: const TextStyle(color: Colors.black87),
-        ),
-        DropdownButton<String>(
-          value: selectedCategory,
-          items: categories.map((cat) {
-            return DropdownMenuItem(
-              value: cat,
-              child: Text(
-                cat,
-                style: const TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.w500),
-              ),
-            );
-          }).toList(),
-          onChanged: (value) {
-            if (value != null) {
-              onCategoryChanged(value);
             }
           },
           dropdownColor: Colors.white,

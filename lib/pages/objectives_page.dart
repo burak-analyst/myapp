@@ -35,15 +35,8 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
 
   int _selectedYear = DateTime.now().year;
   int _selectedPeriodIndex = 3;
-  String _selectedCategory = 'Health';
 
   List<int> get _yearRange => List.generate(4, (i) => DateTime.now().year + i);
-
-  List<Objective> get _filteredObjectives => _objectives.where((obj) {
-    return obj.year == _selectedYear &&
-        obj.periodIndex == _selectedPeriodIndex &&
-        obj.category == _selectedCategory;
-  }).toList();
 
   @override
   void initState() {
@@ -96,46 +89,63 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
           children: [
             _buildFilters(),
             Expanded(
-              child: _filteredObjectives.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.flag_outlined, size: 56, color: Colors.blueGrey[200]),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No objectives yet.\nTap "+" to add one.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontFamily: 'Montserrat',
-                              fontSize: 18,
-                              color: Colors.blueGrey[300],
-                            ),
-                          ),
-                        ],
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                itemCount: _categories.length,
+                itemBuilder: (context, catIndex) {
+                  final cat = _categories[catIndex];
+                  final categoryObjectives = _objectives.where((obj) =>
+                      obj.year == _selectedYear &&
+                      obj.periodIndex == _selectedPeriodIndex &&
+                      obj.category == cat
+                  ).toList();
+
+                  return ExpansionTile(
+                    initiallyExpanded: categoryObjectives.isNotEmpty,
+                    leading: Icon(_categoryIcon(cat), color: Colors.blueGrey[700]),
+                    title: Text(
+                      cat,
+                      style: const TextStyle(
+                        fontFamily: 'Montserrat',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 19,
+                        color: Colors.blueGrey,
+                        letterSpacing: 0.3,
                       ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      itemCount: _filteredObjectives.length,
-                      itemBuilder: (context, index) {
-                        final obj = _filteredObjectives[index];
-                        return buildObjectiveCardWidget(
-                          context: context,
-                          obj: obj,
-                          objIndex: _objectives.indexOf(obj),
-                          onEditObjective: _showEditObjectiveDialog,
-                          onDeleteObjective: _deleteObjective,
-                          onEditKeyResult: _showEditKeyResultDialog,
-                          onDeleteKeyResult: _deleteKeyResult,
-                          onAddKeyResult: _addKeyResult,
-                          onEditTask: _showEditTaskDialog,
-                          onDeleteTask: _deleteTask,
-                          onAddTask: _addTask,
-                          onStatusChange: _onStatusChange,
-                        );
-                      },
                     ),
+                    children: categoryObjectives.isEmpty
+                        ? [
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12, left: 18),
+                              child: Text(
+                                "No objectives in this category.",
+                                style: TextStyle(
+                                  fontFamily: 'Montserrat',
+                                  fontSize: 15,
+                                  color: Colors.blueGrey[300],
+                                ),
+                              ),
+                            )
+                          ]
+                        : categoryObjectives.map((obj) {
+                            return buildObjectiveCardWidget(
+                              context: context,
+                              obj: obj,
+                              objIndex: _objectives.indexOf(obj),
+                              onEditObjective: _showEditObjectiveDialog,
+                              onDeleteObjective: _deleteObjective,
+                              onEditKeyResult: _showEditKeyResultDialog,
+                              onDeleteKeyResult: _deleteKeyResult,
+                              onAddKeyResult: _addKeyResult,
+                              onEditTask: _showEditTaskDialog,
+                              onDeleteTask: _deleteTask,
+                              onAddTask: _addTask,
+                              onStatusChange: _onStatusChange,
+                            );
+                          }).toList(),
+                  );
+                },
+              ),
             ),
           ],
         ),
@@ -167,17 +177,31 @@ class _ObjectivesPageState extends State<ObjectivesPage> {
       periods: _periods,
       selectedPeriodIndex: _selectedPeriodIndex,
       onPeriodChanged: (index) => setState(() => _selectedPeriodIndex = index),
-      categories: _categories,
-      selectedCategory: _selectedCategory,
-      onCategoryChanged: (cat) => setState(() => _selectedCategory = cat),
     );
+  }
+
+  IconData _categoryIcon(String cat) {
+    switch (cat.toLowerCase()) {
+      case 'health':
+        return Icons.favorite_rounded;
+      case 'finance':
+        return Icons.attach_money_rounded;
+      case 'business':
+        return Icons.business_center_rounded;
+      case 'romance':
+        return Icons.favorite_border_rounded;
+      case 'lifestyle':
+        return Icons.style_rounded;
+      default:
+        return Icons.category;
+    }
   }
 
   void _showAddObjectiveDialog() {
     showAddObjectiveDialog(
       context: context,
       categories: _categories,
-      selectedCategory: _selectedCategory,
+      selectedCategory: _categories.first,
       selectedYear: _selectedYear,
       selectedPeriodIndex: _selectedPeriodIndex,
       onAdd: (Objective obj) {
