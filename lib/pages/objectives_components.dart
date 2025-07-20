@@ -103,48 +103,47 @@ Widget buildObjectiveCardWidget({
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     color: statusCardColor(obj.status),
     child: Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 8, left: 8, right: 2),
-      child: ExpansionTile(
-        iconColor: Colors.blueGrey[900],
-        collapsedIconColor: Colors.blueGrey[400],
-        tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Row(
-          children: [
-            Icon(
-              Icons.flag,
-              color: statusColor(obj.status),
-              size: 28,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                obj.title,
-                style: const TextStyle(
-                  fontFamily: 'Montserrat',
-                  fontSize: 19,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black87,
-                  letterSpacing: 0.2,
-                ),
-              ),
-            ),
-            statusTagWidget(obj.status),
-            IconButton(
-              icon: const Icon(Icons.edit, color: Colors.blueGrey, size: 22),
-              tooltip: "Edit Objective",
-              onPressed: () => onEditObjective(obj, objIndex),
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 22),
-              tooltip: "Delete Objective",
-              onPressed: () => _confirmDelete(context, "Delete this objective?", () => onDeleteObjective(objIndex)),
-            ),
-          ],
-        ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Title on top, small font, up to 3 lines, wraps, ellipsis
+          Text(
+            obj.title,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontFamily: 'Montserrat',
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+              height: 1.3,
+              letterSpacing: 0.1,
+            ),
+          ),
+          const SizedBox(height: 12),
+          // All status and icon controls at the bottom row
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(Icons.flag, color: statusColor(obj.status), size: 22),
+              const SizedBox(width: 8),
+              statusTagWidget(obj.status),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.edit, color: Colors.blueGrey, size: 20),
+                tooltip: "Edit Objective",
+                onPressed: () => onEditObjective(obj, objIndex),
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                tooltip: "Delete Objective",
+                onPressed: () => _confirmDelete(context, "Delete this objective?", () => onDeleteObjective(objIndex)),
+              ),
+            ],
+          ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            padding: const EdgeInsets.only(top: 10, bottom: 2),
             child: _buildStatusSelector(
               context,
               obj.status,
@@ -171,7 +170,7 @@ Widget buildObjectiveCardWidget({
             );
           }),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            padding: const EdgeInsets.symmetric(vertical: 6),
             child: OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
                 side: BorderSide(color: Colors.blueGrey[700]!),
