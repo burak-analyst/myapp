@@ -5,6 +5,7 @@ import '../models/objective.dart';
 import '../models/key_result.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:file_picker/file_picker.dart';
 import 'dart:convert';
 
 class SettingsPage extends StatefulWidget {
@@ -124,6 +125,142 @@ class _SettingsPageState extends State<SettingsPage> {
     await Share.shareXFiles([XFile(file.path)], text: 'Here is my LifeMaxx data export!');
   }
 
+  Future<void> _importCSV() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['csv'],
+    );
+    if (result != null && result.files.single.path != null) {
+      File file = File(result.files.single.path!);
+      String csv = await file.readAsString();
+
+      // Confirm overwrite
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Import Data'),
+          content: const Text(
+              'This will overwrite ALL your existing objectives with data from the CSV. Continue?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Import'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+
+      // Parse CSV and overwrite SharedPreferences
+      List<Objective> importedObjectives = _parseCSV(csv);
+      final prefs = await SharedPreferences.getInstance();
+      List<String> jsonList = importedObjectives.map((o) {
+        return json.encode({
+          'title': o.title,
+          'status': o.status.name,
+          'category': o.category,
+          'year': o.year,
+          'periodIndex': o.periodIndex,
+          'keyResults': o.keyResults.map((kr) => {
+            'title': kr.title,
+            'status': kr.status.name,
+            'tasks': kr.tasks,
+          }).toList(),
+        });
+      }).toList();
+
+      await prefs.setStringList('objectives', jsonList);
+
+      // Success message
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Data imported successfully!')),
+        );
+      }
+    }
+  }
+
+  List<Objective> _parseCSV(String csv) {
+    List<String> lines = csv.split('\n');
+    if (lines.isNotEmpty && lines.first.trim().toLowerCase().contains("category")) {
+      lines = lines.sublist(1); // remove header
+    }
+    Map<String, Objective> objectives = {};
+
+    for (final line in lines) {
+      if (line.trim().isEmpty) continue;
+      final fields = _parseCsvLine(line);
+
+      if (fields.length < 8) continue;
+      final cat = fields[0];
+      final year = int.tryParse(fields[1]) ?? DateTime.now().year;
+      final period = int.tryParse(fields[2]) ?? 0;
+      final objTitle = fields[3];
+      final objStatus = Status.values.firstWhere(
+        (s) => s.name == fields[4],
+        orElse: () => Status.notStarted,
+      );
+      final krTitle = fields[5];
+      final krStatus = Status.values.firstWhere(
+        (s) => s.name == fields[6],
+        orElse: () => Status.notStarted,
+      );
+      final task = fields[7];
+
+      final objKey = '$cat|$year|$period|$objTitle';
+
+      if (!objectives.containsKey(objKey)) {
+        objectives[objKey] = Objective(
+          title: objTitle,
+          status: objStatus,
+          category: cat,
+          year: year,
+          periodIndex: period,
+          keyResults: [],
+        );
+      }
+      final obj = objectives[objKey];
+
+      if (krTitle.isNotEmpty) {
+        var existingKR = obj!.keyResults.where((kr) => kr.title == krTitle).toList();
+        if (existingKR.isEmpty) {
+          obj.keyResults.add(KeyResult(
+            title: krTitle,
+            status: krStatus,
+            tasks: task.isNotEmpty ? [task] : [],
+          ));
+        } else {
+          if (task.isNotEmpty) existingKR.first.tasks.add(task);
+        }
+      }
+    }
+    return objectives.values.toList();
+  }
+
+  // Simple CSV parser for a line
+  List<String> _parseCsvLine(String line) {
+    List<String> out = [];
+    String current = '';
+    bool inQuotes = false;
+    for (int i = 0; i < line.length; i++) {
+      final char = line[i];
+      if (char == '"' && (i == 0 || line[i - 1] != '\\')) {
+        inQuotes = !inQuotes;
+      } else if (char == ',' && !inQuotes) {
+        out.add(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    out.add(current);
+    return out;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -185,6 +322,12 @@ class _SettingsPageState extends State<SettingsPage> {
             title: const Text('Export Data'),
             subtitle: const Text('Export your objectives, key results, and tasks to CSV'),
             onTap: _exportCSV,
+          ),
+          ListTile(
+            leading: Icon(Icons.file_download), // <-- FIXED ICON HERE
+            title: const Text('Import Data'),
+            subtitle: const Text('Import/restore your objectives from CSV (will overwrite all data)'),
+            onTap: _importCSV,
           ),
         ],
       ),
