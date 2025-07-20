@@ -134,6 +134,19 @@ class _SettingsPageState extends State<SettingsPage> {
       File file = File(result.files.single.path!);
       String csv = await file.readAsString();
 
+      // Check for correct CSV schema
+      final csvHeader = csv.split('\n').first.trim().toLowerCase();
+      if (!csvHeader.contains('category') ||
+          !csvHeader.contains('objective') ||
+          !csvHeader.contains('status')) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('This file is not a valid LifeMaxx backup!')),
+          );
+        }
+        return;
+      }
+
       // Confirm overwrite
       final confirmed = await showDialog<bool>(
         context: context,
@@ -157,6 +170,14 @@ class _SettingsPageState extends State<SettingsPage> {
 
       // Parse CSV and overwrite SharedPreferences
       List<Objective> importedObjectives = _parseCSV(csv);
+      if (importedObjectives.isEmpty) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No objectives found in this file!')),
+          );
+        }
+        return;
+      }
       final prefs = await SharedPreferences.getInstance();
       List<String> jsonList = importedObjectives.map((o) {
         return json.encode({
