@@ -55,6 +55,7 @@ class InfoPage extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 80, 16, 32),
           children: [
+            // HEADER CARD (now inside the ListView, scrolls with content)
             Container(
               margin: const EdgeInsets.only(bottom: 32),
               padding: const EdgeInsets.all(22),
