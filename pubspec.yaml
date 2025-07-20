@@ -14,7 +14,7 @@ dependencies:
   path_provider: ^2.0.14
   share_plus: ^7.2.1
   cupertino_icons: ^1.0.8
-  file_picker: any
+  file_picker: ^6.2.1
   video_player: ^2.7.0
 
 dev_dependencies:
